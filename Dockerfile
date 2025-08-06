@@ -17,7 +17,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 # Confirm npm and node versions (optional debugging info)
 RUN node -v && npm -v
 
-# Copy your mcpo source code (assuming in src/mcpo)
+# Copy your mcpo source code
 COPY . /app
 WORKDIR /app
 
@@ -26,17 +26,16 @@ ENV VIRTUAL_ENV=/app/.venv
 RUN uv venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Install mcpo (assuming pyproject.toml is properly configured)
+# Install mcpo
 RUN uv pip install . && rm -rf ~/.cache
 
-# Verify mcpo installed correctly
+# Install a default MCP server (filesystem as example)
+RUN npm install -g @modelcontextprotocol/server-filesystem
+
+# Verify installations
 RUN which mcpo
+RUN which mcp-server-filesystem
 
-# Expose port (optional but common default)
-EXPOSE 8000
-
-# Entrypoint set for easy container invocation
-ENTRYPOINT ["mcpo"]
-
-# Default help CMD (can override at runtime)
-CMD ["serve"]
+# IMPORTANT: Remove ENTRYPOINT and use a proper CMD
+# This allows Railway to override with custom start command if needed
+CMD ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "mcp-server-filesystem", "/app"]
