@@ -39,4 +39,4 @@ EXPOSE 8000
 ENTRYPOINT ["mcpo"]
 
 # Default help CMD (can override at runtime)
-CMD ["--help"]
+CMD []
