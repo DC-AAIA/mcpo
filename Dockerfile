@@ -1,41 +1,18 @@
-FROM python:3.12-slim-bookworm
+FROM node:20-slim
 
-# Install uv (from official binary), nodejs, npm, and git
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Install Python and pip for MCPO
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Create virtual environment and install MCPO
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install mcpo
 
-# Install Node.js and npm via NodeSource 
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# Install n8n-mcp globally via npm
+RUN npm install -g @czlonkowski/n8n-mcp
 
-# Confirm npm and node versions (optional debugging info)
-RUN node -v && npm -v
-
-# Copy your mcpo source code
-COPY . /app
+# Set working directory
 WORKDIR /app
 
-# Create virtual environment explicitly in known location
-ENV VIRTUAL_ENV=/app/.venv
-RUN uv venv "$VIRTUAL_ENV"
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-# Install mcpo
-RUN uv pip install . && rm -rf ~/.cache
-
-# Install a default MCP server (filesystem as example)
-RUN npm install -g @modelcontextprotocol/server-filesystem
-
-# Verify installations
-RUN which mcpo
-RUN which mcp-server-filesystem
-
-# IMPORTANT: Remove ENTRYPOINT and use a proper CMD
-# This allows Railway to override with custom start command if needed
-CMD ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "mcp-server-filesystem", "/app"]
+# Set the command to run MCPO with n8n-mcp in stdio mode
+CMD ["mcpo", "--host", "0.0.0.0", "--port", "8000", "--", "npx", "@czlonkowski/n8n-mcp"]
